@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f9">
+  <meta name="description" content="An interactive, mathematically grounded playground for self-distillation and KL divergence.">
+  <title>Distill — A self-distillation playground</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23e66b40'/%3E%3Cpath d='M12 10h7c14 0 14 20 0 20h-7z' fill='none' stroke='white' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="math.js" defer></script><script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><div class="header-inner">
+    <a class="brand" href="#"><span class="brand-icon">d<span>·</span></span>distill<span class="brand-divider"></span><span class="brand-caption">THE LEARNING LAB</span></a>
+    <a class="paper-link" href="https://arxiv.org/html/2604.15574v1#S4.SS1" target="_blank" rel="noreferrer">Read the paper <span aria-hidden="true">↗</span></a>
+  </div></header>
+  <main>
+    <section class="intro">
+      <div class="eyebrow"><span></span> INTERACTIVE EXPLAINER <span class="eyebrow-separator">/</span> 01</div>
+      <h1>Learn something new.<br><span>Keep what you know.</span></h1>
+      <p>Explore how self-distillation balances learning with remembering.<br class="desktop-break"> Change the distributions. Follow the gradients. Make KL divergence click.</p>
+      <div class="intro-meta"><span class="tiny-grid">▦</span> Inspired by Kaplan et al., 2026 <span class="meta-dot">·</span> A single-token teaching model</div>
+    </section>
+
+    <nav class="tabs" aria-label="Explainer sections"><button class="tab active" id="playground-tab" aria-current="page">01 <span>Loss playground</span></button><button class="tab" id="method-tab">02 <span>Behind the math</span></button><button class="tab" id="cartoons-tab">03 <span>Paper cartoons</span></button><span class="tab-note"><span class="live-dot"></span> All calculations run in your browser</span></nav>
+
+    <div id="playground">
+      <section class="mode-section" aria-labelledby="mode-heading">
+        <div class="mode-heading"><h2 id="mode-heading">One example. Three learning rules.</h2><p>Same teacher, same student, same target. Change only the objective to see the difference.</p></div>
+        <fieldset class="mode-options"><legend class="sr-only">Training objective</legend>
+          <label class="mode-option"><input type="radio" name="objective" value="kl" checked><span><strong>1. KL only</strong><small>Match the teacher’s distribution</small></span></label>
+          <label class="mode-option"><input type="radio" name="objective" value="sft"><span><strong>2. SFT only</strong><small>Push the training target toward 100%</small></span></label>
+          <label class="mode-option"><input type="radio" name="objective" value="combined"><span><strong>3. Combined · paper objective</strong><small>Learn the target with a penalty for drift</small></span></label>
+        </fieldset>
+        <p class="mode-expectation" id="mode-expectation"></p>
+        <p class="mode-reset-note">Switching modes restarts from the same student distribution. Run each mode and compare what happens to Greece.</p>
+      </section>
+      <section class="formula-card" aria-label="Self-distillation objective">
+        <div><div class="overline" id="objective-heading">ACTIVE OBJECTIVE</div><div class="formula" id="active-formula">Loading the selected objective…</div></div>
+        <div class="formula-annotation" id="formula-annotation"><span class="task-text">Learn the target</span><span class="annotation-line"></span><span class="distill-text">Stay close to the teacher</span></div>
+      </section>
+
+      <div class="workspace">
+        <aside class="panel controls">
+          <div class="panel-heading"><h2>The shared example</h2><span class="section-number">01</span></div>
+          <div class="prompt-card"><div class="overline">ONE FIXED CONTEXT · TOY EXAMPLE</div><p id="context"></p><div class="target-line">Training target <span id="target-label"></span></div><p class="example-explanation" id="example-explanation"></p></div>
+          <div class="control-group"><div class="control-label"><label for="lambda">Distillation weight <span class="math-symbol">λ</span></label><output id="lambda-value" for="lambda">1.00</output></div><input id="lambda" type="range" min="0" max="5" step="0.05" value="1"><div class="range-labels"><span>0 · no KL force</span><span>5 · more preservation</span></div></div>
+          <div class="control-group"><div class="control-label"><label for="temperature">Temperature <span class="math-symbol">τ</span></label><output id="temperature-value" for="temperature">0.50</output></div><input id="temperature" type="range" min="0.1" max="3" step="0.05" value="0.5"><div class="range-labels"><span>0.1 · sharper</span><span>3 · softer</span></div></div>
+          <button class="text-button" id="paper-defaults">↺ Use paper objective <span>Combined · λ = 1, τ = 0.5</span></button>
+          <div class="divider"></div>
+          <div class="control-label learning-rate"><label for="learning-rate">Step size <span class="math-symbol">η</span></label><select id="learning-rate"><option value="0.05">0.05</option><option value="0.2" selected>0.20</option><option value="0.5">0.50</option></select></div>
+          <button class="primary-button" id="train"><span aria-hidden="true">▶</span> Run training</button>
+          <div class="secondary-actions"><button id="step">+ Single step</button><button id="reset">↺ Reset student</button></div>
+          <p class="control-footnote">Every step reuses this same example.<br>Prompt, target, and teacher stay fixed.<br>Only the student logits change.</p>
+        </aside>
+
+        <div class="results">
+          <section class="panel distribution-panel">
+            <div class="panel-heading"><div><div class="overline">COMPARE THE DISTRIBUTIONS</div><h2>One context. Two predictions.</h2></div><span class="badge" id="step-badge">STEP 000</span></div>
+            <div class="chart-toolbar"><div class="legend"><span><i class="teacher-dot"></i>Teacher <small>frozen</small></span><span><i class="student-dot"></i>Student <small>trainable</small></span></div><span class="chart-unit">Chart T = <span id="chart-temp">1.00</span></span></div>
+            <div class="probability-view"><label for="probability-view">Show probabilities</label><select id="probability-view"><option value="prediction" selected>Prediction · T = 1</option><option value="distillation">KL distributions · T = τ</option></select></div>
+            <p id="chart-explanation" class="chart-explanation"></p>
+            <div id="distribution-chart" class="distribution-chart" role="img" aria-label="Teacher and student token probabilities"></div>
+            <div class="chart-footer"><span><span class="target-marker">✓</span> = training target</span><span>Hover or focus a token to inspect</span></div>
+            <details class="logit-editor"><summary><span>Advanced: custom distributions</span><span class="editor-hint">Make your own distribution <span aria-hidden="true">↗</span></span></summary><div class="logit-grid" id="logit-inputs"></div><p>Editing student logits sets the shared starting distribution for all three modes. The main chart uses softmax(logits) at T = 1; KL uses softmax(logits / τ).</p><div class="advanced-actions"><button id="match-teacher" class="text-button">Start student at teacher →</button><button id="restore-example" class="text-button">↺ Restore fixed example</button></div></details>
+          </section>
+
+          <div class="metrics" aria-label="Live loss values"><div class="metric task-metric" id="task-metric"><div class="metric-label">Task loss <span>CE</span></div><div class="metric-value" id="task-loss">—</div><div class="metric-caption" id="task-caption">−log p<sub>student, τ=1</sub>(target)</div></div><div class="metric distill-metric"><div class="metric-label">Distillation penalty <span>λτ² KL</span></div><div class="metric-value" id="distill-loss">—</div><div class="metric-caption" id="distill-caption"></div></div><div class="metric total-metric"><div class="metric-label">Total loss <span>Σ</span></div><div class="metric-value" id="total-loss">—</div><div class="metric-caption" id="total-caption">Task + distillation · nats</div></div></div>
+          <div class="loss-arithmetic" id="loss-arithmetic" aria-label="Active terms in total loss"></div>
+          <section class="teacher-distance" aria-label="Distance from teacher"><div><span class="overline">RAW KL · ZERO MEANS A MATCH</span><div class="distance-value"><span id="kl-start">—</span><span class="distance-arrow">→</span><strong id="kl-now">—</strong><span id="kl-trend"></span></div></div><p id="kl-comparison"></p></section>
+          <section class="panel force-panel" aria-labelledby="force-title"><div class="panel-heading"><h2 id="force-title">What will the next step do?</h2><span class="badge">NEXT UPDATE</span></div><p id="next-probability"></p><p id="prediction-probability"></p><div class="force-grid"><div><span>Task push</span><strong class="task-text" id="task-force"></strong></div><span>+</span><div><span>KL correction</span><strong class="distill-text" id="kl-force"></strong></div><span>=</span><div><span>Net update</span><strong id="net-force"></strong></div></div><p class="force-caption" id="force-caption"></p><div class="gradient-status"><span>Full gradient · max |∂ℒ/∂z|</span><strong id="gradient-norm"></strong><p id="optimization-state"></p></div></section>
+          <div class="insight" role="status"><span class="insight-icon">↗</span><div><strong id="insight-title"></strong><p id="insight-text"></p></div></div>
+        </div>
+      </div>
+
+      <div class="bottom-grid">
+        <section class="panel breakdown-panel"><div class="panel-heading"><div><div class="overline">INSIDE THE KL TERM</div><h2>Every token has a say.</h2></div><span class="badge">TEACHER → STUDENT</span></div><p class="section-description">KL(p ∥ q) = Σ p(v) log[p(v) / q(v)]. Inspect each token’s contribution. <span id="kl-temperature-note"></span></p><div class="table-scroll"><table><thead><tr><th>Token</th><th>Teacher p</th><th>Student q</th><th>p · log(p / q)</th></tr></thead><tbody id="kl-rows"></tbody><tfoot><tr><td colspan="3">KL divergence <span>unscaled · nats</span></td><td id="raw-kl"></td></tr></tfoot></table></div><p class="panel-note"><span>i</span> A token’s contribution can be negative. The sum is always nonnegative, and is zero when the distributions match.</p></section>
+        <section class="panel history-panel"><div class="panel-heading"><div><div class="overline">WATCH LEARNING HAPPEN</div><h2>The loss trajectory.</h2></div><button class="icon-button" id="download" title="Download trajectory as CSV" aria-label="Download trajectory as CSV">↓</button></div><div class="legend history-legend" id="history-legend"><span><i class="total-dot"></i>Total</span><span><i class="task-dot"></i>Task</span><span><i class="teacher-dot"></i>Penalty</span><span><i class="baseline-dot"></i>SFT only</span></div><div id="history-chart" class="history-chart" role="img" aria-label="Loss over training steps"></div><p class="panel-note" id="history-note">Run training to trace the objective. Dashed line: task loss of a separate λ = 0 student from the same starting logits.</p></section>
+      </div>
+      <div class="takeaway"><span class="takeaway-number">AHA / 01</span><p>Cross-entropy asks <strong>“Did you learn the answer?”</strong><br>KL asks <strong>“How much did your whole distribution change?”</strong></p><button id="explore-math">Explore the math <span>→</span></button></div>
+    </div>
+
+    <section id="method" hidden>
+      <div class="method-heading"><div class="eyebrow">FROM THE PAPER TO THE PLAYGROUND</div><h2>A teacher that is your earlier self.</h2><p>A frozen snapshot provides a reference distribution while the student continues learning.</p></div>
+      <div class="method-grid"><article class="panel"><span class="method-number">01</span><h3>Take a snapshot</h3><p>The paper first fine-tunes on known facts for one epoch, then freezes that model as the teacher.</p><div class="method-diagram">Base model <span>→</span> QA adaptation <span>→</span> <b>Frozen teacher</b></div></article><article class="panel"><span class="method-number">02</span><h3>Keep learning, with a reference</h3><p>The student trains on known and unknown facts. Its objective adds a temperature-scaled, teacher-to-student KL penalty to next-token cross-entropy.</p><div class="method-diagram"><b>Task loss</b><span>+</span><b>λ × distillation loss</b></div></article></div>
+      <article class="panel full-equation"><div class="overline">PAPER OBJECTIVE · EQUATIONS 1–2</div><div class="equation-text">ℒ = ℒ<sub>task</sub> + λ 𝔼<sub>(x,y) ∼ ℬ</sub> [ <span class="fraction"><span>τ²</span><span>|M(y)|</span></span> ∑<sub>j ∈ M(y)</sub> KL(softmax(z<sub>teacher,j</sub> / τ) ∥ softmax(z<sub>student,j</sub> / τ)) ]</div><p>The paper averages over non-padded token positions and training examples, using λ = 1 and τ = 0.5. <a href="https://arxiv.org/html/2604.15574v1#S4.SS1" target="_blank" rel="noreferrer">Read §4.1 ↗</a></p></article>
+      <div class="method-grid"><article class="panel explanation"><h3>What the sliders really do</h3><p><b>λ sets the tradeoff.</b> In Combined mode, setting λ to zero leaves only the labeled answer. In KL-only mode, setting λ to zero switches off all updates. Increasing it makes changes away from the reference distribution more costly.</p><p><b>τ changes both distributions.</b> Low temperatures concentrate mass on the largest logits; high temperatures expose more of the probability assigned to other tokens. Task cross-entropy always uses τ = 1.</p><p><b>τ² rescales the KL loss.</b> It compensates for temperature-related gradient scaling. Temperature still changes the optimization problem.</p></article><article class="panel explanation"><h3>The actual gradient in this demo</h3><div class="gradient-formula">∂ℒ / ∂z<sub>student</sub> =<br><span class="task-text">q₁ − one_hot(target)</span><br>+ <span class="distill-text">λτ(q<sub>τ</sub> − p<sub>τ</sub>)</span></div><p>Every click applies z ← z − η∇ℒ. The main chart defaults to probabilities at T = 1, matching task cross-entropy. Switch the chart to T = τ to inspect the distributions used by KL. Changing the view does not change training. Calculations use natural logarithms and stable log-softmax.</p></article></div>
+      <article class="scope-note"><h3>Why Combined does not exactly copy the teacher</h3><p>KL is a soft penalty, not an equality constraint. At an exact teacher–student match, the KL gradient is zero, but the task gradient can still move the student. The optimizer seeks a balance between the two gradients; KL need not decrease on every combined step.</p><p>For a simple exact example, set τ = 1. The combined optimum over this token distribution is <b>q* = (one_hot(target) + λp) / (1 + λ)</b>. If the teacher assigns the target 20% and λ = 1, the optimum assigns it 60%. KL-only instead has its minimum at q = p, provided λ &gt; 0.</p><p>A stationary point has zero <b>total gradient</b>, not necessarily zero loss. The task and KL gradients can cancel while both losses remain positive. The 500-step demo limit is not a convergence test.</p><p>The gradient equation above is for Combined. KL-only removes the task term, and SFT-only removes the KL term. These two teaching modes isolate the components; the paper uses their combination.</p></article>
+      <article class="scope-note"><h3>What does one step mean?</h3><p>Each step recomputes the selected loss on the same prompt and target token, then updates the five student logits. It does not sample a new answer. Repetition reveals where each objective leads: KL-only approaches the teacher (with λ &gt; 0), SFT-only approaches a one-hot target, and Combined approaches a gradient balance. Exact convergence is not guaranteed within 500 steps.</p><p>Real training also revisits examples across epochs, but it updates shared network weights over many contexts and token positions. This demo isolates one position so those competing objectives are easier to see.</p></article>
+      <article class="scope-note"><h3>What this toy model can show</h3><p>This demo optimizes five logits at one token position. It shows how the two loss terms compete, including when the teacher assigns little probability to a new target. It does not model shared neural-network parameters, interference between facts, or measure hallucination rates. The synthetic example and trajectories are not experimental results from the paper.</p><p>The dashed comparison trains an independent student from the same initialization with λ = 0. Its curve is task cross-entropy; the solid total includes the KL penalty, so their heights represent different objectives.</p></article>
+      <button class="primary-button back-button" id="back-playground">← Back to the playground</button>
+    </section>
+    <section id="paper-cartoons" hidden>
+      <div class="method-heading cartoon-heading"><div class="eyebrow">THE PAPER, IN FOUR PICTURES</div><h2>What can change?<br><span>What do you feed it?</span></h2><p>Two choices. Four experiments. One way to remember the findings.</p></div>
+      <div class="dataset-key"><div><span class="dataset-symbol known-symbol">K</span><p><b>D<sub>known</sub></b><span>Known facts used in training<br>Measures task learning</span></p></div><div><span class="dataset-symbol unknown-symbol">?</span><p><b>D<sub>unknown</sub></b><span>New facts used in training<br>Measures factual learning</span></p></div><div><span class="dataset-symbol held-symbol">✓</span><p><b>D<sub>held</sub></b><span>Other known facts, held out<br>Measures preservation</span></p></div></div>
+      <div class="cartoon-reading-note"><strong>Read the locks, not just the titles.</strong> Frozen means no weight updates; the module still runs. The characters are memory aids, not literal locations of knowledge.</div>
+      <div class="cartoon-grid" id="cartoon-grid"></div>
+      <div class="cartoon-source"><span class="badge">REPORTED DATA · NOT A SIMULATION</span><p>Accuracy (%) from <a href="https://arxiv.org/html/2604.15574v1#S3" target="_blank" rel="noreferrer">Table 1, Kaplan et al. (2026) ↗</a>, representative Qwen 2.5–1.5B results. D<sub>held</sub> scores are accuracy, not the percentage of facts forgotten. “—” means not reported.</p></div>
+      <div class="cartoon-memory"><div class="overline">THE MEMORY HOOK</div><h3>Change the format. Add new facts. Keep old facts.</h3><p>Those are three different outcomes. Attention-only separates the first from the second; training on known facts alone avoids introducing new facts.</p><div class="memory-equation"><span>Freeze FFN</span><b>→</b><span>Little new factual learning</span><b>→</b><span>Old facts largely preserved</span></div></div>
+      <div class="cartoon-bridge"><div><h3>Where does KL fit?</h3><p>Self-distillation aims to learn new facts while limiting forgetting through an output-distribution penalty. These four freezing/data ablations do not use that penalty.</p></div><button id="cartoon-to-loss">Explore the combined loss <span>→</span></button></div>
+    </section>
+    <footer><div><span class="footer-brand">distill.</span> A small lab for a big idea.</div><p>Based on <a href="https://arxiv.org/abs/2604.15574" target="_blank" rel="noreferrer">Why Fine-Tuning Encourages Hallucinations and How to Fix It ↗</a><br>Kaplan et al. · 2026 <span>Educational simulation · No model or API required</span></p></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,15 @@
+[Unit]
+Description=Distill self-distillation demo for model1.enrica.ai
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/henrytan/git/cs2823r
+ExecStart=/usr/bin/python3 /home/henrytan/git/cs2823r/serve.py --port 8083
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
