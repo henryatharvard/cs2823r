@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Distill
 
 A responsive, interactive website explaining the self-distillation objective in [Why Fine-Tuning Encourages Hallucinations and How to Fix It](https://arxiv.org/abs/2604.15574), Kaplan et al. (2026), §4.1, equations 1–2.
@@ -58,6 +57,3 @@ The mode controls are synchronized with the objective state on every render and 
 Advanced student-logit edits and “Start student at teacher” update the shared initialization used by every mode and Reset student. “Restore fixed example” restores the original teacher and student distributions.
 
 Every simulated step repeats the same fixed prompt, target, and teacher distribution. It computes the selected objective and updates student logits; it does not generate a sampled answer. The 500-step limit does not imply convergence.
-=======
-# cs2823r
->>>>>>> ad683b8ffcbff48cf2268dd1b3ebeae79ee83a88
